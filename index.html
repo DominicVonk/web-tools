@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Pair</title>
+</head>
+
+<body>
+    <button class="btn-hover color-1" style="display:none;" id="scan">Start NFC</button>
+    <form id="form">
+        <input id="input" autocomplete="off" placeholder="Token" /><button class="btn-hover color-1">Pair</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        (async () => {
+            if ('NDEFReader' in window) {
+                const nfcPermissionStatus = await navigator.permissions.query({ name: "nfc" });
+                if (nfcPermissionStatus.state === "granted") {
+                    // NFC access was previously granted, so we can start NFC scanning now.
+                    // UPDATED: Even though it is not persisted, this state could have been granted in user session.
+                    startScanning();
+                } else {
+                    // Show a "scan" button.
+                    document.querySelector("#scan").style.display = "block";
+                    document.querySelector("#scan").onclick = event => {
+                        // Prompt user to allow UA to send and receive info when they tap NFC devices.
+                        // UPDATED: User would not be prompted indeed in Firefox, but scanning would start asynchronously if success.
+                        startScanning();
+                    };
+                }
+            }
+
+            const clipboardPermissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
+
+        })();
+        var socket = io();
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+
+        socket.on('token', (token) => {
+
+            let t = document.createElement('div');
+            t.classList.add('token');
+            t.innerHTML = 'Token: ' + token;
+            document.body.appendChild(t);
+        })
+
+        socket.on('paired', (code) => {
+            let t = document.createElement('div');
+            t.classList.add('pair');
+            t.innerHTML = 'Paired: ' + code;
+            document.body.appendChild(t);
+            form.style.display = 'none';
+        })
+
+        socket.on('unpair', () => {
+            let t = document.querySelector('.pair');
+            t.remove();
+            form.style.display = 'block';
+        })
+
+        async function startScanning () {
+            try {
+                const ndef = new NDEFReader();
+                await ndef.scan();
+
+
+                ndef.addEventListener("reading", ({ message, serialNumber }) => {
+                    console.log(serialNumber);
+                    socket.emit('code', serialNumber.replace(/:/g, ''));
+                });
+            } catch (error) {
+                console.log("Argh! " + error);
+            }
+        }
+        socket.on('nfc', (nfc) => {
+            navigator.clipboard.writeText(nfc);
+        });
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('pair', input.value);
+                form.style.display = 'none';
+                let t = document.createElement('div');
+                t.classList.add('pair');
+                t.innerHTML = 'Paired: ' + input.value;
+                document.body.appendChild(t);
+            }
+        });
+    </script>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+        }
+
+        input {
+            border: 1px solid #fff;
+            outline: 0;
+            background-color: #000;
+            color: #fff;
+            width: 150px;
+            border-radius: 50px;
+            text-align: center;
+            height: 55px;
+            transition: box-shadow 500ms ease;
+        }
+
+        input:focus {
+            box-shadow: 0 4px 15px 0 rgba(255, 255, 255, 0.75);
+        }
+
+        input::-webkit-input-placeholder {
+            color: #aaa;
+        }
+
+        .btn-hover {
+            font-size: 24px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            margin: 20px;
+            padding: 0 32px;
+            height: 55px;
+            text-align: center;
+            border: none;
+            background-size: 300% 100%;
+
+            border-radius: 50px;
+            moz-transition: all .4s ease-in-out;
+            -o-transition: all .4s ease-in-out;
+            -webkit-transition: all .4s ease-in-out;
+            transition: all .4s ease-in-out;
+        }
+
+        .btn-hover:hover {
+            background-position: 100% 0;
+            moz-transition: all .4s ease-in-out;
+            -o-transition: all .4s ease-in-out;
+            -webkit-transition: all .4s ease-in-out;
+            transition: all .4s ease-in-out;
+        }
+
+        .btn-hover:focus {
+            outline: none;
+        }
+
+        .btn-hover.color-1 {
+            background-image: linear-gradient(to right, #25aae1, #40e495, #30dd8a, #2bb673);
+            box-shadow: 0 4px 15px 0 rgba(49, 196, 190, 0.75);
+        }
+
+        body,
+        input,
+        button {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 24px;
+        }
+
+
+
+        .token {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -20px);
+
+        }
+
+        form,
+        .pair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 20px);
+        }
+    </style>
+</body>
+
+</html>
