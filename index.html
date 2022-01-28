@@ -61,6 +61,10 @@
             form.style.display = 'none';
         })
 
+        socket.on('not_paired', () => {
+            alert('The other device is already connected to another device');
+        })
+
         socket.on('unpair', () => {
             let t = document.querySelector('.pair');
             t.remove();
@@ -92,12 +96,6 @@
             }
             if (input.value) {
                 socket.emit('pair', input.value);
-                form.style.display = 'none';
-                let t = document.createElement('div');
-                t.classList.add('pair');
-                t.innerHTML = 'Paired: ' + input.value;
-                document.body.appendChild(t);
-                input.value = '';
             }
 
         });

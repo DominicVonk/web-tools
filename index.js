@@ -27,12 +27,18 @@ io.on('connection', (socket) => {
     });
 
     socket.on('pair', (pair) => {
-        pairedTo[pair] = socket;
-        pairIds[connectionId] = pair;
-        pairIds[pair] = connectionId;
-        pairedTo[connectionId] = connections[pair];
-        pairedTo[connectionId].emit('paired', connectionId)
-    })
+        if (!(pair in pairIds)) {
+            pairedTo[pair] = socket;
+            pairIds[connectionId] = pair;
+            pairIds[pair] = connectionId;
+            pairedTo[connectionId] = connections[pair];
+            pairedTo[connectionId].emit('paired', connectionId)
+
+            socket.emit('paired', pair)
+        } else {
+            socket.emit('not_paired')
+        }
+    });
 
     socket.on('disconnect', () => {
         let pairId = pairIds[connectionId];
