@@ -41,7 +41,7 @@
         var form = document.getElementById('form');
         var input = document.getElementById('input');
         var mytoken = '';
-
+        var timeout = null;
         socket.on('token', (token) => {
             if (document.querySelector('.token')) {
                 document.querySelector('.token').remove();
@@ -69,7 +69,7 @@
         socket.on('unpair', () => {
             let t = document.querySelector('.pair');
             t.remove();
-            form.style.display = 'block';
+            form.style.display = 'flex';
         })
 
         async function startScanning () {
@@ -80,19 +80,46 @@
 
                 ndef.addEventListener("reading", ({ message, serialNumber }) => {
                     console.log(serialNumber);
-                    socket.emit('code', serialNumber.replace(/:/g, ''));
+                    if (socket) {
+                        socket.emit('code', serialNumber.replace(/:/g, ''));
+                    } else {
+                        writeToClipboard(serialNumber.replace(/:/g, ''));
+                    }
                 });
             } catch (error) {
                 console.log("Argh! " + error);
             }
         }
-        socket.on('nfc', (nfc) => {
+        function writeToClipboard (nfc) {
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            if (document.querySelector('.notification')) {
+                document.querySelector('.notification').remove();
+            }
             navigator.clipboard.writeText(nfc);
+
+            let div = document.createElement('div');
+
+            div.innerHTML = `
+    <div class="notification">
+        <h1>${nfc}</h1>
+        <p>Copied to clipboard</p>
+    </div>`;
+
+            document.body.appendChild(div.children[0]);
+
+            timeout = setTimeout(() => {
+                document.querySelector('.notification').remove();
+            }, 4000);
+        }
+        socket.on('nfc', (nfc) => {
+            writeToClipboard(nfc);
         });
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value === mytoken) {
-                alert('Cannot connect to itself');
+                alert('Cannot pair with itself');
                 input.value = '';
                 return;
             }
@@ -104,6 +131,12 @@
     </script>
 
     <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
         html,
         body {
             height: 100%;
@@ -139,10 +172,10 @@
             font-weight: 600;
             color: #fff;
             cursor: pointer;
-            margin: 20px;
             padding: 0 32px;
             height: 55px;
             text-align: center;
+            margin-left: 20px;
             border: none;
             background-size: 300% 100%;
 
@@ -184,6 +217,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -20px);
+            width: 100%;
+            display: flex;
+            justify-content: center;
 
         }
 
@@ -193,6 +229,41 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, 20px);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+
+        }
+
+        .notification {
+            position: absolute;
+            width: 240px;
+            right: 24px;
+            top: 24px;
+            background-color: #7777;
+            border-radius: 10px;
+            padding: 16px;
+            color: #fff;
+            box-shadow: 0 4px 15px 0 #5555;
+            text-align: right;
+        }
+
+        @media screen and (max-width: 600px) {
+            .notification {
+                width: auto;
+                left: 24px;
+                text-align: center;
+            }
+        }
+
+        .notification h1 {
+            font-size: 24px;
+            margin-bottom: 0.5em;
+        }
+
+        .notification p {
+            width: 100%;
+            font-size: 16px;
         }
     </style>
 </body>
