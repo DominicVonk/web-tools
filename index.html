@@ -63,6 +63,7 @@
 
         socket.on('not_paired', () => {
             alert('The other device is already connected to another device');
+            input.value = '';
         })
 
         socket.on('unpair', () => {
@@ -91,6 +92,7 @@
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value === mytoken) {
+                alert('Cannot connect to itself');
                 input.value = '';
                 return;
             }
