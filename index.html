@@ -40,12 +40,16 @@
         var socket = io();
         var form = document.getElementById('form');
         var input = document.getElementById('input');
+        var mytoken = '';
 
         socket.on('token', (token) => {
-
+            if (document.querySelector('.token')) {
+                document.querySelector('.token').remove();
+            }
             let t = document.createElement('div');
             t.classList.add('token');
             t.innerHTML = 'Token: ' + token;
+            mytoken = token;
             document.body.appendChild(t);
         })
 
@@ -82,6 +86,10 @@
         });
         form.addEventListener('submit', function (e) {
             e.preventDefault();
+            if (input.value === mytoken) {
+                input.value = '';
+                return;
+            }
             if (input.value) {
                 socket.emit('pair', input.value);
                 form.style.display = 'none';
@@ -89,7 +97,9 @@
                 t.classList.add('pair');
                 t.innerHTML = 'Paired: ' + input.value;
                 document.body.appendChild(t);
+                input.value = '';
             }
+
         });
     </script>
 
